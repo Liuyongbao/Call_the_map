@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/location"
+        app:showAsAction="never"
+        android:title="定位"/>
+    <item
+        android:id="@+id/in_door_info"
+        app:showAsAction="never"
+        android:title="室内"/>
+    <item
+        android:id="@+id/night"
+        app:showAsAction="never"
+        android:title="夜景"/>
+    <item
+        android:id="@+id/nav"
+        app:showAsAction="never"
+        android:title="导航"/>
+    <item
+        android:id="@+id/normal"
+        app:showAsAction="never"
+        android:title="白昼"/>
+    <item
+        android:id="@+id/satellate"
+        app:showAsAction="never"
+        android:title="卫星"/>
+    <item
+        android:id="@+id/bus"
+        app:showAsAction="never"
+        android:title="公交车"/>
+</menu>
