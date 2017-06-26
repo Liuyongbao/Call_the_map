@@ -1,9 +1,7 @@
 package com.example.administrator.gaodeditu;
 
-import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -15,6 +13,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.amap.api.maps.AMap;
 import com.amap.api.maps.MapView;
@@ -23,14 +22,18 @@ import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
+import com.amap.api.services.core.LatLonPoint;
+import com.amap.api.services.geocoder.GeocodeQuery;
+import com.amap.api.services.geocoder.GeocodeResult;
+import com.amap.api.services.geocoder.GeocodeSearch;
+import com.amap.api.services.geocoder.RegeocodeResult;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
 
 import static com.example.administrator.gaodeditu.R.id.location;
 
-public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAdapter {
+public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAdapter, GeocodeSearch.OnGeocodeSearchListener {
 
     private MapView mapView;
     private AMap aMap;
@@ -44,6 +47,10 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
     private boolean value=true;
     private ArrayList<String> list;
     private LatLng mylatlng;
+    boolean innerNavDialogFlag=true;
+    private Intent intent;
+    private AlertDialog innerNavDialog;
+    private LatLonPoint latLonPoint;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +149,12 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
             @Override
             public void onInfoWindowClick(Marker marker) {
                 initLv(value);
-                alertDialog.show();
+                if (alertDialog!=null){
+                    alertDialog.show();
+                }
+                if (innerNavDialog!=null){
+                    innerNavDialog.show();
+                }
             }
         });
     }
@@ -154,9 +166,9 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
         if (value){
             this.value=false;
         }
-        boolean installqq = isInstallByread("com.tencent.map");
-        boolean installnav = isInstallByread("com.autonavi.minimap");
-        boolean installbaidu = isInstallByread("com.baidu.BaiduMap");
+        boolean installqq = isInstallByread("com.tencent.map1");
+        boolean installnav = isInstallByread("com.autonavi.minimap1");
+        boolean installbaidu = isInstallByread("com.baidu.BaiduMap1");
         list = new ArrayList<>();
         if (installqq){
             list.add("腾讯地图");
@@ -165,7 +177,9 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
         } if (installnav){
             list.add("高德地图");
         }else {
-            startActivity(new Intent(MainActivity.this,NavActivity.class));
+            intent=new Intent(MainActivity.this,NavActivity.class);
+
+            initInnerNavDialog(innerNavDialogFlag);
             return;
         }
         ArrayAdapter<String> adapter=new ArrayAdapter<String>(MainActivity.this,android.R.layout.simple_list_item_1,list);
@@ -196,6 +210,30 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
         AlertDialog.Builder builder=new AlertDialog.Builder(MainActivity.this);
         builder.setView(lv);
         alertDialog=builder.create();
+    }
+
+    private void initInnerNavDialog(boolean b) {
+        if (!b){
+            return;
+        }
+        if (b){
+            b=false;
+        }
+        final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        final String[] navtypes={"自动","驾车","骑行","步行"};
+        builder.setItems(navtypes, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Bundle bundle = new Bundle();
+                bundle.putParcelable("我的坐标",mylatlng);
+                bundle.putParcelable("目的地",latLonPoint);
+                bundle.putString("navitype",navtypes[which]);
+
+                intent.putExtra("bundle",bundle);
+                startActivity(intent);
+            }
+        });
+        innerNavDialog = builder.create();
     }
 
 
@@ -279,6 +317,15 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
             case R.id.bus:
                 aMap.setMapType(AMap.MAP_TYPE_BUS);
                 break;
+            case R.id.getlatlng:
+                //高德自带的逆定理的编码，并将其实例实例化
+                GeocodeSearch geocodeSearch = new GeocodeSearch(this);
+                geocodeSearch.setOnGeocodeSearchListener(this);
+                //通过GeocodeQuery设置查询参数,调用getFromLocationNameAsyn(GeocodeQuery geocodeQuery) 方法发起请求。
+                //address表示地址，第二个参数表示查询城市，中文或者中文全拼，citycode、adcode都ok
+                GeocodeQuery query = new GeocodeQuery("南锣鼓巷", "010");
+                geocodeSearch.getFromLocationNameAsyn(query);
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -289,23 +336,23 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
      * @param packageName：应用包名
      * @return
              */
-    public static boolean isAvilible(Context context, String packageName) {
-        //获取packagemanager
-        final PackageManager packageManager = context.getPackageManager();
-        //获取所有已安装程序的包信息
-        List<PackageInfo> packageInfos = packageManager.getInstalledPackages(0);
-        //用于存储所有已安装程序的包名
-        List<String> packageNames = new ArrayList<String>();
-        //从pinfo中将包名字逐一取出，压入pName list中
-        if (packageInfos != null) {
-            for (int i = 0; i < packageInfos.size(); i++) {
-                String packName = packageInfos.get(i).packageName;
-                packageNames.add(packName);
-            }
-        }
-        //判断packageNames中是否有目标程序的包名，有TRUE，没有FALSE
-        return packageNames.contains(packageName);
-    }
+//    public static boolean isAvilible(Context context, String packageName) {
+//        //获取packagemanager
+//        final PackageManager packageManager = context.getPackageManager();
+//        //获取所有已安装程序的包信息
+//        List<PackageInfo> packageInfos = packageManager.getInstalledPackages(0);
+//        //用于存储所有已安装程序的包名
+//        List<String> packageNames = new ArrayList<String>();
+//        //从pinfo中将包名字逐一取出，压入pName list中
+//        if (packageInfos != null) {
+//            for (int i = 0; i < packageInfos.size(); i++) {
+//                String packName = packageInfos.get(i).packageName;
+//                packageNames.add(packName);
+//            }
+//        }
+//        //判断packageNames中是否有目标程序的包名，有TRUE，没有FALSE
+//        return packageNames.contains(packageName);
+//    }
 
     @Override
     public View getInfoWindow(Marker marker) {
@@ -324,5 +371,16 @@ public class MainActivity extends AppCompatActivity implements AMap.InfoWindowAd
      */
     private boolean isInstallByread(String packageName) {
         return new File("/data/data/" + packageName).exists();
+    }
+
+    @Override
+    public void onRegeocodeSearched(RegeocodeResult regeocodeResult, int i) {
+
+    }
+
+    @Override
+    public void onGeocodeSearched(GeocodeResult geocodeResult, int i) {
+        latLonPoint = geocodeResult.getGeocodeAddressList().get(0).getLatLonPoint();
+        Toast.makeText(this, latLonPoint.getLatitude()+"---"+ latLonPoint.getLongitude(), Toast.LENGTH_SHORT).show();
     }
 }
